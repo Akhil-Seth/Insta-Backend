@@ -4,225 +4,210 @@ const fs = require('fs');
 const path = require('path');
 const socket = require('../socket');
 
-const Auth = require('../models/auth');
 const Post = require('../models/post');
+const Register = require('../models/auth');
 
 
 
-exports.getPost = (req , res , next) => {
-    const currentPage = req.query.page;
-    const perPage = 10;
-    let totalItems;
-    Post.find()
-    .sort( { createdAt : -1 })
-    .countDocuments()
-    .then(count => {
-        totalItems = count;
-        return Post.find()
-        .skip((currentPage - 1) * perPage)
-        .limit(perPage);
-    })
-    .then(posts => {
-        res.status(200).json({
-            message : "Get successFull",
-            posts : posts,
-            totalItems : totalItems
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.postProfile = (req , res , next) => {
+    const id = req.body.id ;
+    // console.log(id);
+    // console.log('id');
+    Register.findById(id)
+    .then(result =>{
+        // console.log(result);
+        // console.log(result.posts.post);
+        res.status(200).json({ 
+            name : result.name ,
+            image  : result.image ,
+            bio : result.bio ,
+            same : true ,
+            postNo : result.posts.post.length ,
+            following : result.followings.following.length ,
+            posts : result.posts.post ,
+            follow :result.followers.follower.length
+        })
+    }).
+    catch(err => {
+             console.log(err);
+             res.status(422).json({ 
+                message : err 
+            })
         });
-    })
-    .catch(err => {
-        if(!err.statusCode){
-            err.statusCode = 500;
-        }
-        next(err);
-    });
 }
 
-exports.getPostId = (req , res , next) => {
-    const postId = req.params.postID;
-    Post.findById(postId)
-    .then(post => {
-        if(!post){
-            const error = new Error("Post Not Found");
-            error.statusCode = 422;
-             throw error;
-        }
-        res.status(200).json({
-            message : "Get single post successFull",
-            post : post
+exports.postSearch = (req , res , next) => {
+    const email = req.body.email ;
+    // console.log(email);
+    Register.findOne( { email : email})
+    .then(result =>{
+        // console.log(result);
+        // console.log(result.posts.post);
+        res.status(200).json({ 
+            name : result.name ,
+            image  : result.image ,
+            bio : result.bio ,
+            id : result._id ,
+            same : false ,
+            postNo : result.posts.post.length ,
+            following : result.followings.following.length ,
+            posts : result.posts.post ,
+            follow :result.followers.follower.length
+        })
+    }).
+    catch(err => {
+             console.log(err);
+             res.status(422).json({ 
+                message : err 
+            })
         });
-    })
-    .catch(err => {
-        if(!err.statusCode){
-            err.statusCode = 500;
-        }
-        next(err);
-    });
 }
 
-exports.createPost = (req , res , next) => {
-    const errors = validationResult(req);
-    if(!errors.isEmpty){
-        const error = new Error("Input Error");
-        error.statusCode = 422;
-        throw error;
-    }
-    if(!req.file) { 
-        const error = new Error("No Images");
-        error.statusCode = 422;
-        throw error;
-    }
-    let ccc ;
-    Auth.findById(req.userId)
-        .then(user => {
-            ccc = user.name.toString();
-        })
-        .catch(err => {
-            console.log(`err = ${err}`);
-        })
+exports.postPost = (req , res , next) => {
     const title = req.body.title;
-    const desc = req.body.content;
-    const imageUrl = req.file.path;
-    let creator;
-    const userId = req.userId;
-    let imageUu = imageUrl.replace(`\\` , '/');
-    const post  = new Post( {
-        title : title ,
-        content : desc ,
-        imageUrl : imageUu ,
-        creator : req.userId,
-        name : 'Anonymous User'
-    });
-    post.save()
-    .then(result => {
-        return Auth.findById(userId);
-    })
-    .then(user => {
-        creator = user ;
-        user.posts.push(post);
-        return user.save();
-    })
-    .then(result => {
-        socket.getIO().emit('sendPost' , { actionName : 'sendingPostByUser' , post : { ...post._doc, creator: { _id: req.userId, name: creator.name }}});
-        res.status(200).json({
-            message : "Post successFull",
-            post : post ,
-            creator : {
-                _id : creator._id ,
-                name : ccc
-            }
-        });
-    })
-    .catch(err => {
-        if(!err.statusCode){
-            err.statusCode = 500;
-        }
-        next(err);
-    });
-}
+    const image = req.body.image;
+    const id = req.body.id;
+    const post = new Post( { 
+      title : title ,
+      id : id , 
+      image : image
+  });
+  let user ;
+  let postId ;
+  
+//   post.save()
+//   .then(result => {
+//     postId = result._id ;
+//     return Register.findById(id).then(resul => {
 
-exports.updatePost = (req , res , next) => {
-    const postId = req.params.postID;
-    const title = req.body.title;
-    const content = req.body.content;
-    let imageUrl = req.body.imageUrl;
-    let creator;
-    Auth.findById(req.userId)
-        .then(user => {
-            creator = user ;
-        })
-    Post.findById(postId)
-        .then(post => {
-            if(post.creator.toString() !== req.userId) {
-                const error = new Error("Not allowed to update");
-                error.statusCode = 403;
-                throw error;
-            }
-        }).catch(error => {
-            if(!error){
-                error.statusCode = 500;
-            }
-            next(error);
-        });
-
-    if(req.file){
-        imageUrl = req.file.path;
+//     })
+//   }).then(result => {res.status(201).json({ message: 'Post Added'});});
+post.save()
+  .then(result => {
+    postId = result._id;
+    return Register.findById(id);
+  })
+  .then(user => {
+    if (!user) {
+      throw new Error('User not found');
     }
-    if(!imageUrl){
-        const error = new Error("No Images for update");
-        error.statusCode = 422;
-        throw error;
+    if (!Array.isArray(user.posts.post)) {
+        user.posts.post = [];
+      }
+    user.posts.post.push({ postId: postId, title: title , image : image });
+    return user.save();
+  })
+  .then(result => {
+    res.status(201).json({ message: 'Post Added' });
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(500).json({ message: 'Failed to add post' });
+  });
+  }
+
+
+//   exports.postFlw = (req , res , next) => {
+//     const id = req.body.id;
+//     const send = req.body.send;
+
+//     try {
+//         const [userId, sendId] = await Promise.all([
+//           Register.findById(id),
+//           Register.findById(send)
+//         ]);
+
+//         Register.findById(id).then(result => {
+//             userId.followings.following.push({ id: send, name: sendId.name })
+//             return userId.save();
+//         }).then( result => {
+//             Register.findById(send).then(result => {
+//                 sendId.followers.followers.push({ id: id, name: userId.name })
+//                 return userId.save();
+//             })
+//         })
+
+        
+//         res.status(200).json({ message: 'Users followed each other successfully' });
+//       } catch (error) {
+
+//         console.error(error);
+//         res.status(500).json({ error: 'Failed to follow users' });
+//       }
+//   }
+
+// exports.postFlw = async (req, res, next) => {
+//     const id = req.body.id;
+//     const send = req.body.send;
+//     console.log(id);
+//     console.log(send);
+//     try {
+//       const [userId, sendId] = await Promise.all([
+//         Register.findById(id),
+//         Register.findById(send)
+//       ]);
+//       console.log(userId);
+//       console.log(sendId);
+//       userId.followings.following.push({  name: sendId.name });
+//       await userId.save();
+//       sendId.followers.follower.push({  name: userId.name });
+//       await sendId.save();
+  
+//       res.status(200).json({ message: 'Users followed each other successfully' });
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ error: 'Failed to follow users' });
+//     }
+//   };
+
+exports.postFlw = async (req, res, next) => {
+    const id = req.body.id;
+    const send = req.body.send;
+
+    try {
+      const [userId, sendId] = await Promise.all([
+        Register.findById(id),
+        Register.findById(send)
+      ]);
+
+      if (!userId || !sendId) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      await Register.findByIdAndUpdate(id, { $push: { 'followings.following': { name: sendId.name } } });
+      await Register.findByIdAndUpdate(send, { $push: { 'followers.follower': { name: userId.name } } });
+
+      res.status(200).json({ message: 'Users followed each other successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to follow users' });
     }
-    let postsEdit ;
-    Post.findById(postId)
-    .then(post => {
-        if(!post){
-            const error = new Error("No post for update");
-            error.statusCode = 422;
-            throw error;
-        }
-        if(imageUrl !== post.imageUrl){
-            clearImage(post.imageUrl);
-        }
-        post.title = title;
-        post.content = content;
-        post.imageUrl = imageUrl;
-        post.save()
-        postsEdit = post;
-    })
-    .then(result => {
-        socket.getIO().emit('sendPost' , { actionName : 'editingPostByUser' , post : postsEdit
-        });
-        res.status(200).json({ post : result});
-    })
-    .catch(err => {
-        if(!err.statusCode){
-            err.statusCode = 500;
-        }
-        next(err);
-    });
-}
-
-const clearImage = filePath => {
-    filePath = path.join(__dirname , '..' , filePath);
-    fs.unlink(filePath , err => {console.log(err)})
-}
-
-exports.deletePost = (req , res , next) => {
-    const postId = req.params.postID;
-
-    Post.findById(postId)
-        .then(post => {
-            if(post.creator.toString() !== req.userId) {
-                const error = new Error("Not allowed to delete");
-                error.statusCode = 403;
-                throw error;
-            }
-        }).catch(error => {
-            if(!error){
-                error.statusCode = 500;
-            }
-            next(error);
-        });
-
-    Post.findById(postId)
-    .then(post => {
-        if(!post){
-            const error = new Error("No post for delete");
-            error.statusCode = 422;
-            throw error;
-        }
-        socket.getIO().emit('sendPost' , { actionName : 'deletePostByUser' , post : postId
-        });
-        clearImage(post.imageUrl);
-        return Post.findByIdAndDelete(post._id);
-    })
-    .then(result => {
-        res.status(200).json({message : 'Deleted Post', post : result});
-    })
-    .catch(err => {
-        if(!err.statusCode){
-            err.statusCode = 500;
-        }
-        next(err);
-    });
-}
+};
+  

@@ -1,3 +1,5 @@
+// const routesChats = require('./routes/chat');
+
 const bp = require('body-parser');
 const cors = require('cors');
 const express = require('express');
@@ -6,7 +8,11 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const routesAuth = require('./routes/auth');
-const routesFeed = require('./routes/feed');
+const routesflw = require('./routes/flw');
+
+
+
+
 
 
 
@@ -51,12 +57,13 @@ app.use((error, req, res, next) => {
   console.log(error);
   const status = error.statusCode || 500;
   const message = error.message;
-  res.status(status).json({ message: message  , data : data});
+  res.status(status).json({ message: message });
 });
 
 
-app.use( '/feed' , routesFeed);
+// app.use( '/chat' , routesChats);
 app.use( '/auth' , routesAuth);
+app.use(  routesflw);
 app.use(cors());
 
 mongoose

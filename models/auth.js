@@ -1,27 +1,48 @@
 const mongoose = require('mongoose');
-const schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-const postSchema = new schema({
-    email : {
-        type : String ,
-        required : true
-    },
-    password : {
-        type : String ,
-        required : true
-    },
-    posts : [{
-        type : schema.Types.ObjectId ,
-        ref : 'post'
-    }],
-    name : {
-        type : String ,
-        required : true
-    },
-    status : {
-        type : String ,
-        default : 'I am new into this site'
-    }
+const userSchema = new Schema({
+  password: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  image: {
+    type: String,
+    default : true
+  },
+  followers: {
+    follower: [
+      {
+        // id: { type: Schema.Types.ObjectId, ref: 'UserInsta', required: false },
+        name : { type: String, ref: 'UserInsta', required: false }
+      }
+    ]
+  },
+  followings: {
+    following: [
+      {
+        // id: { type: Schema.Types.ObjectId, ref: 'UserInsta', required: false },
+        name : { type: String, ref: 'UserInsta', required: false }
+      }
+    ]
+  },
+  posts: {
+    post: [
+      {
+        postId: { type: Schema.Types.ObjectId, ref: 'postInsta', required: false },
+        title : { type: String, ref: 'postInsta', required: false },
+        image : { type: String, ref: 'postInsta', required: false }
+      }
+    ]
+  }
 });
 
-module.exports = mongoose.model('userApi' , postSchema);
+module.exports = mongoose.model('UserInsta', userSchema);
